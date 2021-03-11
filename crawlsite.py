@@ -6,6 +6,7 @@ import json
 2021.03.11
 - 비동기식 Ajax 통신 URL 캐치 성공. 공시 정보 URL 캐치 후 JSON Data 추출 성공
 - json_file 접근법 주석 추가
+- 시간(5초)에 따라 새로운 공시 업데이트 유무 확인
 """
 
 url = 'https://project-team.upbit.com/api/v1/disclosure?region=kr&per_page=20'
@@ -29,10 +30,9 @@ def get_recent_announced_coin():
     - start_date : "yyyy-mm-ddT00:00:00+09:00"
     - text : announce title
     """
-
     return json_file['data']['posts'][0]['assets'], json_file['data']['posts'][0]['text']
 
 
-coin, title = get_recent_announced_coin()
-print(coin)
-print(title)
+def init_db():
+    pass
+
