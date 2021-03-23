@@ -11,7 +11,7 @@ def init_db():
     pass
 
 
-investor = invest.Investor(test=True)
+investor = invest.Investor()
 
 while True:
     coin, title = crawlsite.get_recent_announced_coin()
@@ -28,5 +28,7 @@ while True:
             print("{}\n{}".format(coin, title))
 
             # investor.buy_coin(coin)
-            investor.buy_coin(coin, test=True)
-    time.sleep(random.randrange(2, 5))
+            resp = investor.buy_coin(coin)
+            investor.sell_coin(resp)
+
+    time.sleep(random.randrange(5, 10))
