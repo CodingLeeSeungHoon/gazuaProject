@@ -29,6 +29,6 @@ while True:
 
             # investor.buy_coin(coin)
             resp = investor.buy_coin(coin)
-            investor.sell_coin(resp)
+            investor.sell_coin_limit(resp)
 
     time.sleep(random.randrange(5, 10))

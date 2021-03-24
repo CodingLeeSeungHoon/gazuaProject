@@ -7,16 +7,6 @@ from urllib.parse import urlencode
 
 import requests
 
-"""
-# 전체 자산 목록 첫 호출, 거래 후 갱신 기능
-# 공시정보가 갱신되었다면, 새로운 공시에 해당하는 코인 검색 후 주문하기 : 주문을 얼마나 할 것인가?
-# 일정 루틴에 따라 코인 판매하기 : 얼마나 팔 것인가?, 어느 타이밍에 팔 것인가?
-
-# crawl 기능을 계속 사용하면서 계좌 조회가 가능하다면?
-# 쓰레드 기능 구현도 해보자..
-"""
-
-
 class Investor:
     def __init__(self):
         """
@@ -43,7 +33,7 @@ class Investor:
 
         res = requests.get(self.server_url + "/v1/accounts", headers=headers)
 
-        return res.json( )
+        return res.json()
 
     def buy_coin(self, coin):
         coin_id = 'KRW-' + coin
@@ -78,14 +68,19 @@ class Investor:
         headers = {"Authorization": authorize_token}
 
         res = requests.post(self.server_url + "/v1/orders", params=query, headers=headers)
+        return res
 
+    @staticmethod
     def is_sold(self, coin_id):
         return True
 
-    def sell_coin(self, resp):
+    def sell_coin_market(self):
+        pass
+
+    def sell_coin_limit(self, resp):
         """
-        21.03.24 이승훈
-        resp Created =
+        @ 21.03.24 이승훈
+        params resp =
         {
           "uuid":"cdd92199-2897-4e14-9448-f923320408ad", -> 주문 취소할 때 필요
           "price":"100.0", -> 주문 당시 화폐 가격
@@ -109,15 +104,15 @@ class Investor:
                 'price': str(bought_price * 1.1),
                 'ord_type': 'limit',
             }
-            query_string = urlencode(query).encode( )
+            query_string = urlencode(query).encode()
 
-            m = hashlib.sha512( )
+            m = hashlib.sha512()
             m.update(query_string)
-            query_hash = m.hexdigest( )
+            query_hash = m.hexdigest()
 
             payload = {
                 'access_key': self.access_key,
-                'nonce': str(uuid.uuid4( )),
+                'nonce': str(uuid.uuid4()),
                 'query_hash': query_hash,
                 'query_hash_alg': 'SHA512',
             }
@@ -131,8 +126,11 @@ class Investor:
                 # wait K minutes and check coins are sold
                 time.sleep(10000)
                 if self.is_sold():
-                    pass
+                    # 판매 완료 MSG, Investor 계좌 갱신
+                    print("Success sell {} coin!".format(coin_id.replace("KRW-", "")))
+                    self.my_account = self.my_whole_account()
                 else:
+                    # K초가 지나도 팔리지 않은 경우, 취소 및 시장가로 매도
                     pass
             else:
                 # res 400 Failed
