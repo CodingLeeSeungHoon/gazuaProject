@@ -7,11 +7,16 @@ db_coin, db_title = [], []
 count = 1
 
 
-def init_db():
-    pass
+def init():
+    c, t = crawlsite.get_recent_announced_coin()
+    while c == -1:
+        c, t = crawlsite.get_recent_announced_coin()
+
+    db_coin.append(c), db_title.append(t)
 
 
 investor = invest.Investor()
+init()
 
 while True:
     coin, title = crawlsite.get_recent_announced_coin()
