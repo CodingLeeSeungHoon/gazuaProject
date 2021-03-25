@@ -70,12 +70,72 @@ class Investor:
         res = requests.post(self.server_url + "/v1/orders", params=query, headers=headers)
         return res
 
-    @staticmethod
+
     def is_sold(self, coin_id):
         return True
 
-    def sell_coin_market(self):
-        pass
+
+    def order_cancel(self, sell_uuid):
+
+        query = {
+            'uuid': sell_uuid
+        }
+        query_string = urlencode(query).encode()
+
+        m = hashlib.sha512()
+        m.update(query_string)
+        query_hash = m.hexdigest()
+
+        payload = {
+            'access_key': self.access_key,
+            'nonce': str(uuid.uuid4()),
+            'query_hash': query_hash,
+            'query_hash_alg': 'SHA512',
+        }
+
+        jwt_token = jwt.encode(payload, self.secret_key)
+        authorize_token = 'Bearer {}'.format(jwt_token)
+        headers = {"Authorization":authorize_token}
+
+        res = requests.delete(self.server_url + "/v1/order", params=query, headers=headers)
+
+        if "error" not in res:
+            print("Cancel Success")
+        else:
+            self.order_cancel(sell_uuid)
+
+
+    def sell_coin_market(self, coin_id, volume):
+        query = {
+            'market': coin_id,
+            'side': 'ask',
+            'volume': volume,
+            'ord_type': 'market',
+        }
+
+        query_string = urlencode(query).encode()
+
+        m = hashlib.sha512()
+        m.update(query_string)
+        query_hash = m.hexdigest()
+
+        payload = {
+            'access_key': self.access_key,
+            'nonce': str(uuid.uuid4()),
+            'query_hash': query_hash,
+            'query_hash_alg': 'SHA512'
+        }
+
+        jwt_token = jwt.encode(payload, self.secret_key)
+        authorize_token = 'Bearer {}'.format(jwt_token)
+        headers = {"Authorization": authorize_token}
+
+        res = requests.post(self.server_url + "/v1/orders", params=query, headers=headers)
+        if "error" not in res:
+            print("Sell_market Order Success")
+        else:
+            self.sell_market_krw(self, coin_id, volume)
+
 
     def sell_coin_limit(self, resp):
         """
@@ -131,11 +191,14 @@ class Investor:
                     self.my_account = self.my_whole_account()
                 else:
                     # K초가 지나도 팔리지 않은 경우, 취소 및 시장가로 매도
-                    pass
+                    self.order_cancel(order_uuid)
+                    self.sell_coin_market(coin_id, coin_volume)
+                    print("sell {} coin market price.".format(coin_id.replace("KRW-", "")))
+
             else:
                 # res 400 Failed
                 print("Warning : Failed Sell Coin!! retry sell coin")
-                self.sell_coin(resp)
+                self.sell_coin_limit(resp)
 
         else:
             # resp 400 Failed
