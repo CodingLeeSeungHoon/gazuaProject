@@ -1,4 +1,3 @@
-import os
 import jwt
 import uuid
 import hashlib
@@ -56,19 +55,24 @@ class Investor:
         ord_type : 주문타입, 필수, 'limit'은 지정가 주문, 'price'는 시장가 주문 매수, 'market'은 시장가 주문 매도
         """
         whole_krw = -1
+        print(self.my_account)
+
         if len(self.my_account) == 1:
-            if self.my_account['currency'] == 'KRW':
-                whole_krw = self.my_account['balance']
+            if self.my_account[0]['currency'] == 'KRW':
+                whole_krw = str(float(self.my_account[0]['balance']) * 0.95)
         else:
             for a in self.my_account:
                 if a['currency'] == 'KRW':
-                    whole_krw = a['balance']
+                    whole_krw = str(float(a['balance']) * 0.95)
                     break
 
         # 5000원 이하 금액을 주문하면 오류.
         if float(whole_krw) < 5000:
             print("보유 KRW 5000원 미만, 거래를 중지합니다.")
             return -1
+
+        # check point
+        print(whole_krw)
 
         query = {
             'market': coin_id,
@@ -94,7 +98,13 @@ class Investor:
         headers = {"Authorization": authorize_token}
 
         res = requests.post(self.server_url + "/v1/orders", params=query, headers=headers)
+        #check point
+        print(res.text)
+
+        time.sleep(5)
         self.my_account = self.update_account()
+        print(self.my_account)
+
         return res
 
 
@@ -121,6 +131,9 @@ class Investor:
 
         res = requests.get(self.server_url + "/v1/order", params=query, headers=headers)
         remaining_volume = res.json()["remaining_volume"]
+        # check point
+        print(remaining_volume)
+
         return float(remaining_volume)
 
 
@@ -233,7 +246,7 @@ class Investor:
 
 
 
-    def sell_coin_limit(self, resp):
+    def sell_coin_limit(self, resp, coin):
         """
         @ 21.03.24 이승훈
         params resp =
@@ -251,7 +264,19 @@ class Investor:
             order_uuid = response['uuid']
             bought_price = float(response['price'])
             coin_id = response['market']
-            coin_volume = response['volume']
+            coin_volume = -1
+
+            if len(self.my_account) == 1:
+                if self.my_account[0]['currency'] == coin:
+                    coin_volume = self.my_account[0]['balance']
+            else:
+                for a in self.my_account:
+                    if a['currency'] == coin:
+                        coin_volume = a['balance']
+                        break
+
+            # check point
+            print(order_uuid, bought_price, coin_id, coin_volume)
 
             # 구매한 코인을 매도, 구매한 코인의 양 만큼 구매가격의 10% 인상시 매도
             query = {
@@ -279,13 +304,18 @@ class Investor:
             headers = {"Authorization": authorize_token}
 
             res = requests.post(self.server_url + "/v1/orders", params=query, headers=headers)
-            if "error" not in res.json():
+            sell_res = res.json()
+            # check point
+            print(res.text)
+
+            if "error" not in sell_res:
                 # wait 5 minutes and check coins are sold
-                time.sleep(300)
-                not_sold = self.is_not_sold(res.json()['uuid'])
+                time.sleep(60)
+                sell_uuid = sell_res['uuid']
+                not_sold = self.is_not_sold(sell_res['uuid'])
                 if not_sold:
                     # K초가 지나도 팔리지 않은 경우, 취소 및 시장가로 매도
-                    self.order_cancel(order_uuid)
+                    self.order_cancel(sell_uuid)
                     self.sell_coin_market(coin_id, not_sold)
                     print("sell {} coin market price.".format(coin_id.replace("KRW-", "")))
                     self.my_account = self.update_account()
